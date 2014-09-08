@@ -25,7 +25,7 @@
     <script language="javascript" src="//ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>
     <script language="javascript" src="//code.jquery.com/ui/1.11.1/jquery-ui.js"></script>
     <script src="//netdna.bootstrapcdn.com/twitter-bootstrap/2.2.2/js/bootstrap.min.js"></script>
-    <script language="javascript" src="jquery.canvasAreaDraw.js"></script>
+    <script language="javascript" src="jquery.canvasAreaDraw.min.js"></script>
     <script type="text/javascript">
     	(function($){
     		$(document).ready(function(){
@@ -50,10 +50,10 @@
         			}
         		});
     			$("#reset1").click(function(){
-    				htmlmap1.reset();
+    				htmlmap1.htmlimagemap("reset");
     			});
     			$("#reset2").click(function(){
-    				htmlmap2.reset();
+    				htmlmap2.htmlimagemap("reset");
     			});
     		});
     	})(jQuery);
