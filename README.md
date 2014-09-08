@@ -59,6 +59,14 @@ Include the javascript file in your page after jQuery and use the following jQue
 
 _You may want to use a document load or ready event to make sure your elements are already added to the DOM before you invoke the plugin._
 
+### SUPPORT
 
+Supports IE6 and later if you include the excanvas polyfill before the canvasAreaDraw script.
 
+```
+<!--[if IE]><script type="text/javascript" src="excanvas.js"></script><![endif]-->
+<script language="javascript" src="//ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>
+<script language="javascript" src="//code.jquery.com/ui/1.11.1/jquery-ui.js"></script>
+<script language="javascript" src="jquery.canvasAreaDraw.js"></script>
+```
 
