@@ -6,16 +6,20 @@
 		options:{
 			name: "map",
 			imageUrl: "",
-			points: [],
+			areas: [{
+				href:"",
+				coords:[]
+			}],
 			onMove: function(p){},
-			onStopDrag: function(p){}
+			onUpdateArea: function(p){}
 		},
 		
 		//Widget implementation
 		_create: function(){
 			
 			var self = this;
-			this.__activePoint = undefined;
+			this.__activeArea = 0;
+			this.__activeCoord = undefined;
 			this.__settings = undefined;
 			this.__$canvas = undefined;
 			this.__ctx = undefined;
@@ -30,7 +34,7 @@
 
 			var imgonload = function(){
 				$(self.__$canvas).css({background: 'url('+self.__image.src+')'});
-				self.__resize();
+				self.__redraw();
 			};
 			
 			var preload = function(){
@@ -61,7 +65,7 @@
 			
 		},
 		
-		__resize: function(){
+		__redraw: function(){
 			$(this.__$canvas[0]).attr('height', this.__image.height).attr('width', this.__image.width);
 			$(this.__$canvas[0]).css('height', this.__image.height+"px").css('width', this.__image.width+"px");
 			this.__$canvas[0].width = this.__image.width;
@@ -75,16 +79,16 @@
 			if($.browser.msie && parseFloat($.browser.version)<8){
 				e.offsetY = e.offsetY-$('body').scrollTop();
 			}
-			this.options.points[this.__activePoint] = Math.round(e.offsetX);
-			this.options.points[this.__activePoint+1] = Math.round(e.offsetY);
-			this.__resize();
-			this.options.onMove(this.options.points);
+			this.options.areas[this.__activeArea].coords[this.__activeCoord] = Math.round(e.offsetX);
+			this.options.areas[this.__activeArea].coords[this.__activeCoord+1] = Math.round(e.offsetY);
+			this.__redraw();
+			this.options.onMove(this.options.areas[this.__activeArea]);
 		},
 		
 		__stopdrag: function(){
 			$(this.element).off('mousemove');
-			this.__activePoint = null;
-			this.options.onStopDrag(this.options.points);
+			this.__activeCoord = null;
+			this.options.onUpdateArea(this.options.areas[this.__activeArea]);
 		},
 		
 		__rightclick: function(e){
@@ -95,11 +99,12 @@
 			if($.browser.msie && parseFloat($.browser.version)<8){
 				y = e.offsetY-$('body').scrollTop();
 			}
-			for (var i = 0; i < this.options.points.length; i+=2) {
-				dis = Math.sqrt(Math.pow(x - this.options.points[i], 2) + Math.pow(y - this.options.points[i+1], 2));
+			for (var i = 0; i < this.options.areas[this.__activeArea].coords.length; i+=2) {
+				dis = Math.sqrt(Math.pow(x - this.options.areas[this.__activeArea].coords[i], 2) + Math.pow(y - this.options.areas[this.__activeArea].coords[i+1], 2));
 				if ( dis < 6 ) {
-					this.options.points.splice(i, 2);
-					this.__resize();
+					this.options.areas[this.__activeArea].coords.splice(i, 2);
+					this.options.onUpdateArea(this.options.areas[this.__activeArea]);
+					this.__redraw();
 					return false;
 				}
 			}
@@ -108,7 +113,7 @@
 		
 		__mousedown: function(e){
 			
-			var x, y, dis, lineDis, insertAt = this.options.points.length;
+			var x, y, dis, lineDis, insertAt = this.options.areas[this.__activeArea].coords.length;
 			var self = this;
 			
 			if (e.which === 3) {
@@ -123,11 +128,11 @@
 				y = e.offsetY-$('body').scrollTop();
 			}
 			
-			//Move existing point
-			for (var i = 0; i < this.options.points.length; i+=2) {
-				dis = Math.sqrt(Math.pow(x - this.options.points[i], 2) + Math.pow(y - this.options.points[i+1], 2));
+			//Move existing coord
+			for (var i = 0; i < this.options.areas[this.__activeArea].coords.length; i+=2) {
+				dis = Math.sqrt(Math.pow(x - this.options.areas[this.__activeArea].coords[i], 2) + Math.pow(y - this.options.areas[this.__activeArea].coords[i+1], 2));
 				if ( dis < 6 ) {
-					this.__activePoint = i;
+					this.__activeCoord = i;
 					$(this.element).on('mousemove', function(e){
 						self.__move(e);
 					});
@@ -135,13 +140,13 @@
 				}
 			}
 			
-			//Insert new point if close to line
-			for (var i = 0; i < this.options.points.length; i+=2) {
+			//Insert new coord if close to line
+			for (var i = 0; i < this.options.areas[this.__activeArea].coords.length; i+=2) {
 				if (i > 1) {
 					lineDis = dotLineLength(
 						x, y,
-						this.options.points[i], this.options.points[i+1],
-						this.options.points[i-2], this.options.points[i-1],
+						this.options.areas[this.__activeArea].coords[i], this.options.areas[this.__activeArea].coords[i+1],
+						this.options.areas[this.__activeArea].coords[i-2], this.options.areas[this.__activeArea].coords[i-1],
 						true
 					);
 					if (lineDis < 6) {
@@ -150,14 +155,15 @@
 				}
 			}
 			
-			this.options.points.splice(insertAt, 0, Math.round(x), Math.round(y));
+			this.options.areas[this.__activeArea].coords.splice(insertAt, 0, Math.round(x), Math.round(y));
 			
-			this.__activePoint = insertAt;
+			this.__activeCoord = insertAt;
 			$(this.element).on('mousemove', function(e){
 				self.__move(e);
 			});
 			
-			this.__resize();
+			this.options.onUpdateArea(this.options.areas[this.__activeArea]);
+			this.__redraw();
 			
 			return false;
 		},
@@ -165,38 +171,151 @@
 		__draw: function(){
 			
 			this.__ctx.canvas.width = this.__ctx.canvas.width;
-			if (this.options.points.length < 2) {
+			this.__ctx.globalCompositeOperation = 'source-over';
+			
+			for(var i=0; i<this.options.areas.length; i++){
+				
+				if(i != this.__activeArea){
+					this.__drawArea(i);
+				}
+				
+			}
+			
+			this.__drawArea(this.__activeArea);
+			
+		},
+		
+		__drawArea: function(area){
+			
+			var strokePolygonRgb = '';
+			var fillPolygonRgba = '';
+			var strokeCoordRgb = '';
+			var fillCoordRgb = '';
+			
+			if(area == this.__activeArea){
+				strokePolygonRgb = 'rgb(255,20,20)';
+				fillPolygonRgba = 'rgba(255,0,0,0.3)';
+				strokeCoordRgb = 'rgb(255,20,20)';
+				fillCoordRgb = 'rgb(255,255,255)';
+			}else{
+				strokePolygonRgb = 'rgb(50,50,50)';
+				fillPolygonRgba = 'rgba(50,50,50,0.3)';
+				strokeCoordRgb = 'rgb(50,50,50)';
+				fillCoordRgba = 'rgba(50,50,50,0.3)';
+			}
+			
+			if (this.options.areas[area].coords.length < 2) {
 				return false;
 			}
-			this.__ctx.globalCompositeOperation = 'destination-over';
-			this.__ctx.fillStyle = 'rgb(255,255,255)'
-			this.__ctx.strokeStyle = 'rgb(255,20,20)';
+			
 			this.__ctx.lineWidth = 1;
 			
+			//Draw polygon
 			this.__ctx.beginPath();
-			this.__ctx.moveTo(this.options.points[0], this.options.points[1]);
-			for (var i = 0; i < this.options.points.length; i+=2) {
-				this.__ctx.fillRect(this.options.points[i]-2, this.options.points[i+1]-2, 4, 4);
-				this.__ctx.strokeRect(this.options.points[i]-2, this.options.points[i+1]-2, 4, 4);
-				if (this.options.points.length > 2 && i > 1) {
-					this.__ctx.lineTo(this.options.points[i], this.options.points[i+1]);
+			this.__ctx.moveTo(this.options.areas[area].coords[0], this.options.areas[area].coords[1]);
+			for (var i = 0; i < this.options.areas[area].coords.length; i+=2) {
+				if (this.options.areas[area].coords.length > 2 && i > 1) {
+					this.__ctx.lineTo(this.options.areas[area].coords[i], this.options.areas[area].coords[i+1]);
 				}
 			}
 			this.__ctx.closePath();
+			this.__ctx.strokeStyle = strokePolygonRgb;
 			this.__ctx.stroke();
-			this.__ctx.fillStyle = 'rgba(255,0,0,0.3)';
+			this.__ctx.fillStyle = fillPolygonRgba;
 			this.__ctx.fill();
+			
+			//Draw coords
+			this.__ctx.strokeStyle = strokeCoordRgb;
+			this.__ctx.fillStyle = fillCoordRgb;
+			for (var i = 0; i < this.options.areas[area].coords.length; i+=2) {
+				this.__ctx.strokeRect(this.options.areas[area].coords[i]-2, this.options.areas[area].coords[i+1]-2, 4, 4);
+				this.__ctx.fillRect(this.options.areas[area].coords[i]-2, this.options.areas[area].coords[i+1]-2, 4, 4);
+			}
 			
 		},
 		
-		//Public API
-		reset: function(){
-			this.options.points = [];
-			this.__resize();
+		__fixActiveAreaIndex: function(){
+			if(typeof this.options.areas[this.__activeArea] == "undefined"){
+				if(typeof this.options.areas[this.__activeArea-1] != "undefined"){
+					this.setActiveAreaIndex(this.__activeArea-1);
+				}else{
+					this.setActiveAreaIndex(this.__activeArea);
+				}
+			}
 		},
 		
-		getPoints: function(){
-			return this.options.points;
+		//Public API
+		removeAll: function(){
+			this.options.areas = [];
+			this.__fixActiveAreaIndex();
+			this.__redraw();
+		},
+		
+		getAreas: function(){
+			return this.options.areas;
+		},
+		
+		setAreas: function(areas){
+			this.options.areas = areas;
+			this.setActiveAreaIndex(0);
+			this.__redraw();
+		},
+		
+		getArea: function(i){
+			return this.options.areas[i];
+		},
+		
+		setArea: function(i,v){
+			this.options.areas[i] = v;
+			this.__redraw();
+		},
+		
+		removeArea: function(i){
+			this.options.areas.splice(i,1);
+			this.__fixActiveAreaIndex();
+			this.__redraw();
+		},
+		
+		resetArea: function(i){
+			this.setArea(i, {
+				href: "",
+				coords: []
+			});
+			this.options.onUpdateArea(this.options.areas[i]);
+			this.__redraw();
+		},
+		
+		//ACTIVE AREA
+		getActiveArea: function(){
+			return this.options.areas[this.__activeArea];
+		},
+		
+		setActiveArea: function(v){
+			this.setArea(this.__activeArea, v);
+		},
+		
+		resetActiveArea: function(){
+			this.resetArea(this.__activeArea);
+		},
+		
+		removeActiveArea: function(){
+			this.removeArea(this.__activeArea);
+		},
+		
+		//ACTIVE AREA INDEX
+		getActiveAreaIndex: function(){
+			return this.__activeArea;
+		},
+		
+		setActiveAreaIndex: function(i){
+			if(i < 0){
+				return;
+			}
+			this.__activeArea = i;
+			if(typeof this.options.areas[i] == "undefined"){
+				this.resetArea(i);
+			}
+			this.__redraw();
 		}
 		
 	});

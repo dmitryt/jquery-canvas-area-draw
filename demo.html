@@ -4,57 +4,181 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Canvas Area Draw</title>
-    <link href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.2.2/css/bootstrap.no-icons.min.css" rel="stylesheet">
+    <link href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.2.2/css/bootstrap.min.css" rel="stylesheet">
     <link href="//netdna.bootstrapcdn.com/font-awesome/3.0/css/font-awesome.css" rel="stylesheet">
     <link href="//netdna.bootstrapcdn.com/font-awesome/3.0/css/font-awesome-ie7.css" rel="stylesheet">
+    <style type="text/css">
+    	ul.sortable{
+    		margin:0;
+    		padding:0;
+    		list-style:none;
+    	}
+    </style>
   </head>
   <body>
     <div class="span6" id="htmlimagemap1">
 	  <h2> Image 1 </h2>
-      <textarea id="points1" rows=3 name="coords1" class="canvas-area input-xxlarge" disabled 
-        placeholder="Shape Coordinates"></textarea>
-        <div><button class="btn" id="reset1">reset</button></div><br />
+      <textarea id="html1" rows=3 name="coords1" class="canvas-area input-xxlarge" placeholder="Shape Coordinates"></textarea>
+      <div><button class="btn" id="rem1">remove</button><button class="btn" id="reset1">reset</button><button class="btn" id="add1">add area</button></div><br />
+      <div id="layers1">
+      	<ul class="sortable">
+      	</ul>
+      </div>
      </div>
      <div class="span6" id="htmlimagemap2">
       <h2> Image 2 </h2>
-      <textarea id="points2" name="coords2" rows=3 class="canvas-area input-xxlarge" disabled 
-        placeholder="Shape Coordinates"></textarea>
-        <div><button class="btn" id="reset2">reset</button></div><br />
+      <textarea id="html2" rows=3 name="coords2" class="canvas-area input-xxlarge" placeholder="Shape Coordinates"></textarea>
+      <div><button class="btn" id="rem2">remove</button><button class="btn" id="reset2">reset</button><button class="btn" id="add2">add area</button></div><br />
+      <div id="layers2">
+      	<ul class="sortable">
+      	</ul>
+      </div>
      </div>
     <!--[if IE]><script type="text/javascript" src="excanvas.js"></script><![endif]-->
-    <script language="javascript" src="//ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>
-    <script language="javascript" src="//code.jquery.com/ui/1.11.1/jquery-ui.js"></script>
-    <script src="//netdna.bootstrapcdn.com/twitter-bootstrap/2.2.2/js/bootstrap.min.js"></script>
-    <script language="javascript" src="jquery.canvasAreaDraw.min.js"></script>
+    <script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>
+    <script type="text/javascript" src="//code.jquery.com/ui/1.11.1/jquery-ui.js"></script>
+    <script type="text/javascript" src="//netdna.bootstrapcdn.com/twitter-bootstrap/2.2.2/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="jquery.canvasAreaDraw.min.js"></script>
     <script type="text/javascript">
     	(function($){
     		$(document).ready(function(){
+    			
+    			//HTMLMAP 1
+    			var refreshHtmlCode1 = function(){
+    				var areas = htmlmap1.htmlimagemap("getAreas");
+    				var htmlcode = '<map name="htmlmap1">\n';
+    				for(var i=0; i<areas.length; i++){
+    					htmlcode += '\t<area shape="poly" coords="'+areas[i].coords+'" href="'+encodeURI(areas[i].href)+'">\n';
+    				}
+    				htmlcode = htmlcode += '</map>';
+    				$("#html1").text(htmlcode);
+    			};
+    			var initareas1 = [{
+    				href:"",
+    				coords:[208,221,208,202,198,199,201,191,218,176,229,155,221,132,196,117,169,131,157,158,163,172,177,164,173,180,190,185,192,199,187,201,185,222]
+    			}];
     			var htmlmap1 = $("#htmlimagemap1").htmlimagemap({
         			imageUrl: "http://farm8.staticflickr.com/7259/6956772778_2fa755a228.jpg",
-        			points: [208,221,208,202,198,199,201,191,218,176,229,155,221,132,196,117,169,131,157,158,163,172,177,164,173,180,190,185,192,199,187,201,185,222],
-        			onMove: function(points){
-        				$("#points1").text(points.join());
+        			areas: initareas1,
+        			onMove: function(area){
         			},
-        			onStopDrag: function(points){
-        				$("#points1").text(points.join());
+        			onUpdateArea: function(area){
+        				$("#layers1 .sortable li").eq(htmlmap1.htmlimagemap("getActiveAreaIndex")).find("input").attr("data-coords",area.coords.join());
+        				refreshHtmlCode1();
         			}
         		});
+    			$("#rem1").click(function(){
+    				var i = htmlmap1.htmlimagemap("getActiveAreaIndex");
+    				htmlmap1.htmlimagemap("removeActiveArea");
+    				$("#layers1 .sortable li").eq(i).remove();
+    			});
+    			$("#reset1").click(function(){
+    				htmlmap1.htmlimagemap("resetActiveArea");
+    			});
+    			$("#add1").click(function(){
+    				var i = htmlmap1.htmlimagemap("getAreas").length;
+    				htmlmap1.htmlimagemap("setActiveAreaIndex",i);
+    				$("#layers1 .sortable").append($("<li>").append($("<span>",{"class":"icon-resize-vertical"})).append($("<input>",{"type":"text","data-coords":htmlmap1.htmlimagemap("getActiveArea").coords.join()}).val(htmlmap1.htmlimagemap("getActiveArea").href)));
+    			});
+    			$("#layers1 .sortable").on("input focus propertychange change keyup paste", "input", function(){
+    				var i = $(this).parent().index();
+    				var area = htmlmap1.htmlimagemap("getArea",i);
+    				area.href = $(this).val();
+    				htmlmap1.htmlimagemap("setActiveAreaIndex",i);
+    				htmlmap1.htmlimagemap("setArea",i,area);
+    				refreshHtmlCode1();
+    			});
+    			$("#layers1 .sortable").sortable({
+    				update: function(e,ui){
+    					$("#layers1 .sortable li").each(function(i,v){
+    						var area = htmlmap1.htmlimagemap("getArea",i);
+    						var coords = $(v).find("input").attr("data-coords").split(',');
+    						if(coords.length % 2 == 0){
+    							area.coords = $.map(coords, function(value){
+        							return parseInt(value, 10);
+    							});
+    						}else{
+    							area.coords = [];
+    						}
+    						area.href = $(v).find("input").val();
+    						htmlmap1.htmlimagemap("setArea",i,area);
+    					});
+    					refreshHtmlCode1();
+        			}
+    			});
+    			for(var i=0; i<initareas1.length; i++){
+    				$("#layers1 .sortable").append($("<li>").append($("<span>",{"class":"icon-resize-vertical"})).append($("<input>",{"type":"text","data-coords":initareas1[i].coords.join()}).val(initareas1[i].href)));
+    			}
+    			refreshHtmlCode1();
+    			
+    			//HTMLMAP 2
+    			var refreshHtmlCode2 = function(){
+    				var areas = htmlmap2.htmlimagemap("getAreas");
+    				var htmlcode = '<map name="htmlmap2">\n';
+    				for(var i=0; i<areas.length; i++){
+    					htmlcode += '\t<area shape="poly" coords="'+areas[i].coords+'" href="'+encodeURI(areas[i].href)+'">\n';
+    				}
+    				htmlcode = htmlcode += '</map>';
+    				$("#html2").text(htmlcode);
+    			};
+    			var initareas2 = [{
+    				href:"",
+    				coords:[299,84,297,92,285,98,275,109,271,123,273,141,287,156,311,162,333,156,345,142,346,126,340,107,321,92,314,89,309,81]
+    			}];
     			var htmlmap2 = $("#htmlimagemap2").htmlimagemap({
         			imageUrl: "http://farm6.staticflickr.com/5010/5295769404_1a221cbb5e_z.jpg",
-        			points: [299,84,297,92,285,98,275,109,271,123,273,141,287,156,311,162,333,156,345,142,346,126,340,107,321,92,314,89,309,81],
-        			onMove: function(points){
-        				$("#points2").text(points.join());
+        			areas: initareas2,
+        			onMove: function(area){
         			},
-        			onStopDrag: function(points){
-        				$("#points2").text(points.join());
+        			onUpdateArea: function(area){
+        				$("#layers2 .sortable li").eq(htmlmap2.htmlimagemap("getActiveAreaIndex")).find("input").attr("data-coords",area.coords.join());
+        				refreshHtmlCode2();
         			}
         		});
-    			$("#reset1").click(function(){
-    				htmlmap1.htmlimagemap("reset");
+    			$("#rem2").click(function(){
+    				var i = htmlmap2.htmlimagemap("getActiveAreaIndex");
+    				htmlmap2.htmlimagemap("removeActiveArea");
+    				$("#layers2 .sortable li").eq(i).remove();
     			});
     			$("#reset2").click(function(){
-    				htmlmap2.htmlimagemap("reset");
+    				htmlmap2.htmlimagemap("resetActiveArea");
     			});
+    			$("#add2").click(function(){
+    				var i = htmlmap2.htmlimagemap("getAreas").length;
+    				htmlmap2.htmlimagemap("setActiveAreaIndex",i);
+    				$("#layers2 .sortable").append($("<li>").append($("<span>",{"class":"icon-resize-vertical"})).append($("<input>",{"type":"text","data-coords":htmlmap2.htmlimagemap("getActiveArea").coords.join()}).val(htmlmap2.htmlimagemap("getActiveArea").href)));
+    			});
+    			$("#layers2 .sortable").on("input focus propertychange change keyup paste", "input", function(){
+    				var i = $(this).parent().index();
+    				var area = htmlmap2.htmlimagemap("getArea",i);
+    				area.href = $(this).val();
+    				htmlmap2.htmlimagemap("setActiveAreaIndex",i);
+    				htmlmap2.htmlimagemap("setArea",i,area);
+    				refreshHtmlCode2();
+    			});
+    			$("#layers2 .sortable").sortable({
+    				update: function(e,ui){
+    					$("#layers2 .sortable li").each(function(i,v){
+    						var area = htmlmap2.htmlimagemap("getArea",i);
+    						var coords = $(v).find("input").attr("data-coords").split(',');
+    						if(coords.length % 2 == 0){
+    							area.coords = $.map(coords, function(value){
+        							return parseInt(value, 10);
+    							});
+    						}else{
+    							area.coords = [];
+    						}
+    						area.href = $(v).find("input").val();
+    						htmlmap2.htmlimagemap("setArea",i,area);
+    					});
+    					refreshHtmlCode2();
+        			}
+    			});
+    			for(var i=0; i<initareas2.length; i++){
+    				$("#layers2 .sortable").append($("<li>").append($("<span>",{"class":"icon-resize-vertical"})).append($("<input>",{"type":"text","data-coords":initareas2[i].coords.join()}).val(initareas2[i].href)));
+    			}
+    			refreshHtmlCode2();
+    			
     		});
     	})(jQuery);
     </script>
