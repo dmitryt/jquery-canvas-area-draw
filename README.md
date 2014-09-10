@@ -56,12 +56,16 @@ $("#elem").htmlimagemap({
 ### EVENTS
 
 ###### onMove
-Fires every moment you drag a point on the canvas
 ```javascript
 onMove: function(area){}
 ```
+Fires every moment you drag a point on the canvas
+
 
 ###### onUpdateArea
+```javascript
+onUpdateArea: function(area){}
+```
 Fires every:
 
 | Event       | Description                                    |
@@ -71,9 +75,6 @@ Fires every:
 | mousedown   | A mousedown event occurs on the canvas         |
 | resetArea   | An area is reset                               |
 
-```javascript
-onUpdateArea: function(area){}
-```
 
 ### API
 
