@@ -31,23 +31,6 @@
 				this.__$canvas[0] = G_vmlCanvasManager.initElement(this.__$canvas[0]);
 			}
 			this.__ctx = this.__$canvas[0].getContext('2d');
-
-			var imgonload = function(){
-				$(self.__$canvas).css({background: 'url('+self.__image.src+')'});
-				self.__redraw();
-			};
-			
-			var preload = function(){
-				if(self.__image.complete != null && self.__image.complete == true){
-					imgonload();
-					return;
-				}
-				setTimeout(preload, 500);
-			};
-			
-			$(this.__image).load(imgonload);
-			preload();
-			this.__image.src = this.options.imageUrl;
 			
 			$(this.element).append(this.__$canvas);
 			$(this.__$canvas).on('mousedown', function(e){
@@ -62,6 +45,8 @@
 			$(this.__$canvas).on('mouseleave', function(e){
 				self.__stopdrag(e);
 			});
+			
+			this.setImageUrl(this.options.imageUrl);
 			
 		},
 		
@@ -316,6 +301,36 @@
 				this.resetArea(i);
 			}
 			this.__redraw();
+		},
+		
+		setImageUrl: function(url){
+			
+			var self = this;
+			
+			this.options.imageUrl = url;
+			var imgonload = function(){
+				$(self.__$canvas).css({background: 'url('+self.__image.src+')'});
+				self.__redraw();
+			};
+			
+			var preload = function(){
+				if(self.__image.complete != null && self.__image.complete == true){
+					imgonload();
+					return;
+				}
+				setTimeout(preload, 500);
+			};
+			
+			$(this.__image).load(imgonload);
+			preload();
+			this.__image.src = url;
+			
+		},
+		
+		getImageUrl: function(){
+			
+			return this.options.imageUrl;
+			
 		}
 		
 	});
