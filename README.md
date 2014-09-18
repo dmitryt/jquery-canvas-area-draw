@@ -85,6 +85,7 @@ Fires every:
 | area            |  x  |  x  |   x    |   x   |
 | activeArea      |  x  |  x  |   x    |   x   |
 | activeAreaIndex |  x  |  x  |        |       |
+| imageUrl        |  x  |  x  |        |       |
 
 ###### removeAll()
 ```javascript
@@ -149,6 +150,16 @@ var i = $("#elem").htmlimagemap("getActiveAreaIndex");
 ###### setActiveAreaIndex(i)
 ```javascript
 $("#elem").htmlimagemap("setActiveAreaIndex",i);
+```
+
+###### getImageUrl()
+```javascript
+var imgurl = $("#elem").htmlimagemap("getImageUrl");
+```
+
+###### setImageUrl(url)
+```javascript
+$("#elem").htmlimagemap("setImageUrl",url);
 ```
 
 _You may want to use a document load or ready event to make sure your elements are already added to the DOM before you invoke the plugin._
