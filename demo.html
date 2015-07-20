@@ -4,15 +4,20 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Canvas Area Draw</title>
-    <link href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.2.2/css/bootstrap.min.css" rel="stylesheet">
-    <link href="//netdna.bootstrapcdn.com/font-awesome/3.0/css/font-awesome.css" rel="stylesheet">
-    <link href="//netdna.bootstrapcdn.com/font-awesome/3.0/css/font-awesome-ie7.css" rel="stylesheet">
+    <link href="http://netdna.bootstrapcdn.com/twitter-bootstrap/2.2.2/css/bootstrap.min.css" rel="stylesheet">
+    <link href="http://netdna.bootstrapcdn.com/font-awesome/3.0/css/font-awesome.css" rel="stylesheet">
+    <link href="http://netdna.bootstrapcdn.com/font-awesome/3.0/css/font-awesome-ie7.css" rel="stylesheet">
     <style type="text/css">
     	ul.sortable{
     		margin:0;
     		padding:0;
     		list-style:none;
     	}
+
+        #htmlimagemap1 {
+            position: relative;
+        }
+
     </style>
   </head>
   <body>
@@ -35,14 +40,14 @@
       </div>
      </div>
     <!--[if IE]><script type="text/javascript" src="excanvas.js"></script><![endif]-->
-    <script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>
-    <script type="text/javascript" src="//code.jquery.com/ui/1.11.1/jquery-ui.js"></script>
-    <script type="text/javascript" src="//netdna.bootstrapcdn.com/twitter-bootstrap/2.2.2/js/bootstrap.min.js"></script>
-    <script type="text/javascript" src="jquery.canvasAreaDraw.min.js"></script>
+    <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>
+    <script type="text/javascript" src="http://code.jquery.com/ui/1.11.1/jquery-ui.js"></script>
+    <script type="text/javascript" src="http://netdna.bootstrapcdn.com/twitter-bootstrap/2.2.2/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="jquery.canvasAreaDraw.js"></script>
     <script type="text/javascript">
     	(function($){
     		$(document).ready(function(){
-    			
+
     			//HTMLMAP 1
     			var refreshHtmlCode1 = function(){
     				var areas = htmlmap1.htmlimagemap("getAreas");
@@ -60,6 +65,7 @@
     			var htmlmap1 = $("#htmlimagemap1").htmlimagemap({
         			imageUrl: "http://farm8.staticflickr.com/7259/6956772778_2fa755a228.jpg",
         			areas: initareas1,
+                    mode: "continiousSelect",
         			onMove: function(area){
         			},
         			onUpdateArea: function(area){
@@ -110,7 +116,7 @@
     				$("#layers1 .sortable").append($("<li>").append($("<span>",{"class":"icon-resize-vertical"})).append($("<input>",{"type":"text","data-coords":initareas1[i].coords.join()}).val(initareas1[i].href)));
     			}
     			refreshHtmlCode1();
-    			
+
     			//HTMLMAP 2
     			var refreshHtmlCode2 = function(){
     				var areas = htmlmap2.htmlimagemap("getAreas");
@@ -178,7 +184,7 @@
     				$("#layers2 .sortable").append($("<li>").append($("<span>",{"class":"icon-resize-vertical"})).append($("<input>",{"type":"text","data-coords":initareas2[i].coords.join()}).val(initareas2[i].href)));
     			}
     			refreshHtmlCode2();
-    			
+
     		});
     	})(jQuery);
     </script>
