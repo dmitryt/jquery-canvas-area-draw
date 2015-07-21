@@ -16,7 +16,7 @@
 		},
 
 		_applyHandler: function(method) {
-			var context = this.isCSMode() ? this._CSMode : self,
+			var context = this.isCSMode() ? this._CSMode : this,
 				fn = context[method];
 			if (typeof fn === 'function') {
 				fn.apply(context, [].slice.call(arguments, 1));
@@ -135,7 +135,6 @@
 			if($.browser.msie && parseFloat($.browser.version)<8){
 				y = e.offsetY-$('body').scrollTop();
 			}
-
 			//Move existing coord
 			for (var i = 0; i < this.options.areas[this.__activeArea].coords.length; i+=2) {
 				dis = Math.sqrt(Math.pow(x - this.options.areas[this.__activeArea].coords[i], 2) + Math.pow(y - this.options.areas[this.__activeArea].coords[i+1], 2));
@@ -164,7 +163,6 @@
 			}
 
 			this.options.areas[this.__activeArea].coords.splice(insertAt, 0, Math.round(x), Math.round(y));
-
 			this.__activeCoord = insertAt;
 			$(this.element).on('mousemove', function(e){
 				self.__move(e);
@@ -369,8 +367,15 @@
 			context: null,
 			init: function(context) {
 				this.context = context;
+				this.__mouseMoves = [];
 				this.__$drawCanvas = this.context._initCanvas();
+				$(this.context.element).css({'position': 'relative'});
 				$(this.context.element).append(this.__$drawCanvas);
+				$(this.__$drawCanvas).on('mousemove', this.__mousemove.bind(this));
+				$(this.__$drawCanvas).on('mouseup', this.__mouseup.bind(this));
+				$(this.__$drawCanvas).on('mousedown', this.__mousedown.bind(this));
+				$(this.__$drawCanvas).on('mouseleave', this.__stopDrag.bind(this));
+				this.__drawCanvasCtx = this.__$drawCanvas[0].getContext('2d');
 			},
 
 			_addClick: function(e, isDragging) {
@@ -379,17 +384,95 @@
 			},
 
 			__mousedown: function(e) {
+				var areas = this.context.getAreas();
+				this.context.setActiveAreaIndex(areas.length);
 				e.preventDefault();
 				this._isDrawing = true;
 				this._showDrawArea();
+				this.__mouseMoves = [];
 				this._addClick(e);
 			},
 
-			__mouseup: function() {
-				this.__stopDrag();
+			__click: function() {
+				var point = this.__mouseMoves[0],
+					areas = this.context.getAreas().reverse(),
+					selectedAreaIndex = null,
+					isWithinArea = function(p, coords) {
+						var sded = {
+							left: false,
+							right: false,
+							top: false,
+							bottom: false
+						};
+						for (var i = 0; i < coords.length; i+=2) {
+							if (coords[i] < p.x) {
+								sded.left = true;
+							} else {
+								sded.right = true;
+							}
+							if (coords[i + 1] < p.y) {
+								sded.top = true;
+							} else {
+								sded.bottom = true;
+							}
+						}
+						return sded.left && sded.right && sded.top && sded.bottom;
+					};
+				for (var i = 0; i < areas.length; i++) {
+					if (isWithinArea(point, areas[i].coords)) {
+						selectedAreaIndex = i;
+						break;
+					}
+				}
+				if (typeof selectedAreaIndex === 'number') {
+					this.context.setActiveAreaIndex(selectedAreaIndex);
+				}
 			},
 
-			__onclick: function(e) {
+			_prepareCoords: function(coords) {
+				var step = this.context.options.approximationStep || 0,
+					approximate = function(coords) {
+						var result = [coords[0]],
+							checkDiff = function(v1, v2) {
+								return Math.abs(v1 - v2) > step;
+							},
+							lastPoint = null;
+						for (var i = 1; i < coords.length; i++) {
+							lastPoint = result[result.length - 1];
+							if (i < coords.length - 1 && checkDiff(coords[i].x, lastPoint.x) && checkDiff(coords[i].y, lastPoint.y)) {
+								result.push(coords[i]);
+							}
+						}
+						return result;
+					},
+					convertCoords = function(coords) {
+						var result = [];
+						coords.forEach(function(c){
+							result.push.call(result, c.x, c.y);
+						});
+						return result;
+					};
+				return convertCoords(approximate(coords));
+			},
+
+			__mouseup: function(e) {
+				e.preventDefault();
+				if ($(e.target).css('display') === 'none') {
+					return false;
+				}
+				this.__stopDrag();
+				this._showDrawArea(false);
+				this._clearCtx();
+				if (this.__mouseMoves.length === 1) {
+					return this.__click();
+				}
+				if (this.__mouseMoves.length < 3) {
+					return false;
+				}
+				this.context.setActiveArea({coords: this._prepareCoords(this.__mouseMoves)});
+			},
+
+			__mousemove: function(e) {
 				if (!this._isDrawing) {
 					return false;
 				}
@@ -397,13 +480,13 @@
 				this._redraw();
 			},
 
-			_clearCtx: function(ctx) {
-				this.context._clearCtx(ctx);
+			_clearCtx: function() {
+				this.context._clearCtx(this.__drawCanvasCtx);
 			},
 
 			_redraw: function() {
 				var ctx = this.__drawCanvasCtx;
-				this._clearCtx(ctx);
+				this._clearCtx();
 
 				ctx.strokeStyle = "#df4b26";
 				ctx.lineJoin = "round";
@@ -436,12 +519,6 @@
 				});
 				this.__$drawCanvas.width = w;
 				this.__$drawCanvas.height = h;
-				$(this.__$drawCanvas).on('mousemove', this.__onclick.bind(this));
-				$(this.__$drawCanvas).on('mouseup', this.__mouseup.bind(this));
-				$(this.__$drawCanvas).on('mousedown', this.__mousedown.bind(this));
-				$(this.__$drawCanvas).on('mouseleave', this.__stopDrag.bind(this));
-				this.__drawCanvasCtx = this.__$drawCanvas[0].getContext('2d');
-				this.__mouseMoves = [];
 			},
 
 			__stopDrag: function() {

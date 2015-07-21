@@ -14,13 +14,18 @@
     		list-style:none;
     	}
 
-        #htmlimagemap1 {
-            position: relative;
-        }
-
     </style>
   </head>
   <body>
+    <div class="span6" id="htmlimagemap_cs">
+    	<h2> Image CS </h2>
+        <textarea id="html_cs" rows=3 name="coords_cs" class="canvas-area input-xxlarge" placeholder="Shape Coordinates"></textarea>
+        <div><button class="btn" id="rem_cs">remove</button><button class="btn" id="reset_cs">reset</button><button class="btn" id="add_cs">add area</button></div><br />
+        <div id="layers_cs">
+        	<ul class="sortable">
+        	</ul>
+        </div>
+   </div>
     <div class="span6" id="htmlimagemap1">
 	  <h2> Image 1 </h2>
       <textarea id="html1" rows=3 name="coords1" class="canvas-area input-xxlarge" placeholder="Shape Coordinates"></textarea>
@@ -48,6 +53,76 @@
     	(function($){
     		$(document).ready(function(){
 
+                //HTMLMAP Continious Selection
+    			var refreshHtmlCodeCS = function(){
+    				var areas = htmlmap_cs.htmlimagemap("getAreas");
+    				var htmlcode = '<map name="htmlmap_cs">\n';
+    				for(var i=0; i<areas.length; i++){
+    					htmlcode += '\t<area shape="poly" coords="'+areas[i].coords+'" href="'+encodeURI(areas[i].href)+'">\n';
+    				}
+    				htmlcode = htmlcode += '</map>';
+    				$("#html_cs").text(htmlcode);
+    			};
+    			var initareas_cs = [{
+    				href:"",
+    				coords:[208,221,208,202,198,199,201,191,218,176,229,155,221,132,196,117,169,131,157,158,163,172,177,164,173,180,190,185,192,199,187,201,185,222]
+    			}];
+    			var htmlmap_cs = $("#htmlimagemap_cs").htmlimagemap({
+        			imageUrl: "http://farm8.staticflickr.com/7259/6956772778_2fa755a228.jpg",
+        			areas: initareas_cs,
+                    mode: "continiousSelect",
+                    approximationStep: 5,
+        			onMove: function(area){
+        			},
+        			onUpdateArea: function(area){
+        				$("#layers_cs .sortable li").eq(htmlmap_cs.htmlimagemap("getActiveAreaIndex")).find("input").attr("data-coords",area.coords.join());
+        				refreshHtmlCodeCS();
+        			}
+        		});
+    			$("#rem_cs").click(function(){
+    				var i = htmlmap_cs.htmlimagemap("getActiveAreaIndex");
+    				htmlmap_cs.htmlimagemap("removeActiveArea");
+    				$("#layers_cs .sortable li").eq(i).remove();
+    			});
+    			$("#reset_cs").click(function(){
+    				htmlmap_cs.htmlimagemap("resetActiveArea");
+    			});
+    			$("#add_cs").click(function(){
+    				var i = htmlmap_cs.htmlimagemap("getAreas").length;
+    				htmlmap_cs.htmlimagemap("setActiveAreaIndex",i);
+    				$("#layers_cs .sortable").append($("<li>").append($("<span>",{"class":"icon-resize-vertical"})).append($("<input>",{"type":"text","data-coords":htmlmap1.htmlimagemap("getActiveArea").coords.join()}).val(htmlmap1.htmlimagemap("getActiveArea").href)));
+    			});
+    			$("#layers_cs .sortable").on("input focus propertychange change keyup paste", "input", function(){
+    				var i = $(this).parent().index();
+    				var area = htmlmap_cs.htmlimagemap("getArea",i);
+    				area.href = $(this).val();
+    				htmlmap_cs.htmlimagemap("setActiveAreaIndex",i);
+    				htmlmap_cs.htmlimagemap("setArea",i,area);
+    				refreshHtmlCodeCS();
+    			});
+    			$("#layers_cs .sortable").sortable({
+    				update: function(e,ui){
+    					$("#layers_cs .sortable li").each(function(i,v){
+    						var area = htmlmap_cs.htmlimagemap("getArea",i);
+    						var coords = $(v).find("input").attr("data-coords").split(',');
+    						if(coords.length % 2 == 0){
+    							area.coords = $.map(coords, function(value){
+        							return parseInt(value, 10);
+    							});
+    						}else{
+    							area.coords = [];
+    						}
+    						area.href = $(v).find("input").val();
+    						htmlmap_cs.htmlimagemap("setArea",i,area);
+    					});
+    					refreshHtmlCodeCS();
+        			}
+    			});
+    			for(var i=0; i<initareas_cs.length; i++){
+    				$("#layers_cs .sortable").append($("<li>").append($("<span>",{"class":"icon-resize-vertical"})).append($("<input>",{"type":"text","data-coords":initareas_cs[i].coords.join()}).val(initareas_cs[i].href)));
+    			}
+    			refreshHtmlCodeCS();
+
     			//HTMLMAP 1
     			var refreshHtmlCode1 = function(){
     				var areas = htmlmap1.htmlimagemap("getAreas");
@@ -65,7 +140,6 @@
     			var htmlmap1 = $("#htmlimagemap1").htmlimagemap({
         			imageUrl: "http://farm8.staticflickr.com/7259/6956772778_2fa755a228.jpg",
         			areas: initareas1,
-                    mode: "continiousSelect",
         			onMove: function(area){
         			},
         			onUpdateArea: function(area){
