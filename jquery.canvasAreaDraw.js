@@ -5,6 +5,8 @@
 		//Default options
 		options:{
 			name: "map",
+			image: null,
+			mobile: false,
 			imageUrl: "",
 			mode: "",
 			areas: [{
@@ -33,7 +35,7 @@
 			this.__settings = undefined;
 			this.__$canvas = undefined;
 			this.__ctx = undefined;
-			this.__image = new Image();
+			this.__image = this.options.image ? $(this.options.image)[0] : new Image();
 
 			this.__$canvas = this._initCanvas();
 			this.__ctx = this.__$canvas[0].getContext('2d');
@@ -46,11 +48,17 @@
 				self._applyHandler('__rightclick', e);
 			});
 			$(this.__$canvas).on('mouseup', function(e){
-				self.__stopdrag(e);
+				self._applyHandler('__mouseup', e);
 			});
 			$(this.__$canvas).on('mouseleave', function(e){
 				self.__stopdrag(e);
 			});
+
+			if (this.options.mobile) {
+				document.addEventListener("touchstart", touchHandler, true);
+			    document.addEventListener("touchmove", touchHandler, true);
+			    document.addEventListener("touchend", touchHandler, true);
+			}
 
 			if (this.isCSMode()) {
 				this._CSMode.init(this);
@@ -172,6 +180,10 @@
 			this.__redraw();
 
 			return false;
+		},
+
+		__mouseup: function() {
+			this.__stopdrag(e);
 		},
 
 		__draw: function(){
@@ -334,19 +346,33 @@
 
 		setImageUrl: function(url, cb){
 
-			var self = this;
+			var self = this,
+				launchCb = function() {
+					if (typeof cb === 'function') {
+						cb();
+					}
+				};
 
 			this.options.imageUrl = url;
 			var imgonload = function(){
-				$(self.__$canvas).css({background: 'url('+self.__image.src+')'});
-				self.__redraw();
-				if (typeof cb === 'function') {
-					cb();
+				if (self.options.image) {
+					$(self.__$canvas).css({
+						position: 'absolute',
+						width: '100%',
+						height: '100%',
+						top: 0,
+						left: 0
+					});
+				} else {
+					$(self.__$canvas).css({background: 'url('+self.__image.src+')'});
 				}
+				self.__redraw();
+				launchCb();
 			};
 
 			var preload = function(){
-				if(self.__image.complete != null && self.__image.complete == true){
+				var img = self.__image;
+				if(img.complete != null && img.complete == true){
 					imgonload();
 					return;
 				}
@@ -355,8 +381,9 @@
 
 			$(this.__image).load(imgonload);
 			preload();
-			this.__image.src = url;
-
+			if (this.__image.src !== url) {
+				this.__image.src = url;
+			}
 		},
 
 		getImageUrl: function(){
@@ -371,6 +398,8 @@
 				this.__$drawCanvas = this.context._initCanvas();
 				$(this.context.element).css({'position': 'relative'});
 				$(this.context.element).append(this.__$drawCanvas);
+				$(this.context.__$canvas).on('mousemove', this.__mousemove.bind(this));
+				$(this.__$drawCanvas).on('mousemove', this.__mousemove.bind(this));
 				$(this.__$drawCanvas).on('mousemove', this.__mousemove.bind(this));
 				$(this.__$drawCanvas).on('mouseup', this.__mouseup.bind(this));
 				$(this.__$drawCanvas).on('mousedown', this.__mousedown.bind(this));
@@ -457,7 +486,7 @@
 
 			__mouseup: function(e) {
 				e.preventDefault();
-				if ($(e.target).css('display') === 'none') {
+				if (this.__$drawCanvas.css('display') === 'none') {
 					return false;
 				}
 				this.__stopDrag();
@@ -514,6 +543,7 @@
 					display: 'none',
 					position: 'absolute',
 					left: 0,
+					top: 0,
 					width: w + 'px',
 					height: h + 'px'
 				});
@@ -553,5 +583,26 @@
 	        return Math.abs(a * x + b * y + c) / Math.sqrt(a * a + b * b);
 	    }
 	};
+
+	var touchHandler = function(e) {
+			dispatchEvent(e);
+		},
+		dispatchEvent = function(event, target) {
+			event.preventDefault();
+		    var touch = event.changedTouches[0] || event;
+
+		    var simulatedEvent = document.createEvent("MouseEvent");
+		    simulatedEvent.initMouseEvent({
+		        touchstart: "mousedown",
+		        touchmove: "mousemove",
+		        touchend: "mouseup"
+		    }[event.type], true, true, window, 1,
+		        touch.screenX, touch.screenY,
+		        touch.clientX, touch.clientY, false,
+		        false, false, false, 0, null);
+			simulatedEvent.originalType = event.type;
+
+		    (target || touch.target).dispatchEvent(simulatedEvent);
+		};
 
 })( jQuery );
