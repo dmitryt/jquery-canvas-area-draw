@@ -1,0 +1,16 @@
+{
+  "name": "jquery-canvas-area-draw",
+  "version": "1.0.3",
+  "homepage": "https://github.com/fahrenheit-marketing/canvas-area-draw",
+  "author": "Jacob Williams",
+  "description": "Use a canvas based drawing tool to create image map coordinates.",
+  "main": "jquery.canvasAreaDraw.js",
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ]
+}
