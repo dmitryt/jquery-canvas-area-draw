@@ -14,8 +14,12 @@
 				coords:[]
 			}],
 			onMove: function(p){},
-			onUpdateArea: function(p){}
+			onUpdateArea: function(p){},
+			onSelect: function(p){}
 		},
+
+		__color: '#FF0000',
+		__inactiveColor: '#323232',
 
 		_applyHandler: function(method) {
 			var context = this.isCSMode() ? this._CSMode : this,
@@ -200,7 +204,16 @@
 			}
 
 			this.__drawArea(this.__activeArea);
+		},
 
+		__isArea: function(index) {
+			return this.options.areas[index].coords.length > 2;
+		},
+
+		__onAreaSelect: function() {
+			if (typeof this.options.onSelect === 'function') {
+				this.options.onSelect(this.__isArea(this.__activeArea) ? this.__activeArea : null);
+			}
 		},
 
 		__drawArea: function(area){
@@ -208,25 +221,46 @@
 			var strokePolygonRgb = '';
 			var fillPolygonRgba = '';
 			var strokeCoordRgb = '';
-			var fillCoordRgb = '';
+			var fillCoordRgb = '',
+				convertColorHex2Dec = function(hexColor) {
+					var result = [],
+						chars = (hexColor || "").slice(1).split(''),
+						tmp;
+					for (var i = 0; i < chars.length; i+=2) {
+						tmp = chars.slice(i, i+2).join('');
+						result.push(parseInt(tmp, 16));
+					}
+					return result;
+				},
+				getRgbStrExpr = function(color, opacity) {
+					var str = opacity ? 'rgba(%s, %o)'.replace('%o', opacity) : 'rgb(%s)';
+					return str.replace('%s', convertColorHex2Dec(color).join(','));
+				},
+				areaObj = this.options.areas[area],
+				isActiveArea = area == this.__activeArea,
+				color = (areaObj ? areaObj.color : null) || this.getColor(),
+				colorStr = getRgbStrExpr(color),
+				inactiveColorStr = getRgbStrExpr(this.__inactiveColor),
+				inactiveColorTranspStr = getRgbStrExpr(this.__inactiveColor, 0.3);
 
-			if(area == this.__activeArea){
-				strokePolygonRgb = 'rgb(255,20,20)';
-				fillPolygonRgba = 'rgba(255,0,0,0.3)';
-				strokeCoordRgb = 'rgb(255,20,20)';
-				fillCoordRgb = 'rgb(255,255,255)';
+			if(isActiveArea){
+				strokePolygonRgb = colorStr;
+				fillPolygonRgba = getRgbStrExpr(color, 0.3);
+				strokeCoordRgb = colorStr;
+				fillCoordRgb = getRgbStrExpr("#ffffff");
 			}else{
-				strokePolygonRgb = 'rgb(50,50,50)';
-				fillPolygonRgba = 'rgba(50,50,50,0.3)';
-				strokeCoordRgb = 'rgb(50,50,50)';
-				fillCoordRgba = 'rgba(50,50,50,0.3)';
+				strokePolygonRgb = inactiveColorStr;
+				fillPolygonRgba = inactiveColorTranspStr;
+				strokeCoordRgb = inactiveColorStr;
+				fillCoordRgba = inactiveColorTranspStr;
 			}
 
-			if (this.options.areas[area].coords.length < 2) {
+			if (!this.__isArea(area)) {
 				return false;
 			}
 
 			this.__ctx.lineWidth = 1;
+			this.options.areas[area].color = color;
 
 			//Draw polygon
 			this.__ctx.beginPath();
@@ -271,6 +305,14 @@
 
 		getMode: function() {
 			return this.options.mode;
+		},
+
+		getColor: function() {
+			return this.__color;
+		},
+
+		setColor: function(color) {
+			this.__color = color;
 		},
 
 		isCSMode: function() {
@@ -456,6 +498,7 @@
 				if (typeof selectedAreaIndex === 'number') {
 					this.context.setActiveAreaIndex(selectedAreaIndex);
 				}
+				this.context.__onAreaSelect();
 			},
 
 			_prepareCoords: function(coords) {
