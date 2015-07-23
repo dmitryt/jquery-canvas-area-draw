@@ -59,9 +59,7 @@
 			});
 
 			if (this.options.mobile) {
-				document.addEventListener("touchstart", touchHandler, true);
-			    document.addEventListener("touchmove", touchHandler, true);
-			    document.addEventListener("touchend", touchHandler, true);
+				registerTouchEvents(this.__$canvas[0]);
 			}
 
 			if (this.isCSMode()) {
@@ -442,7 +440,6 @@
 				$(this.context.element).append(this.__$drawCanvas);
 				$(this.context.__$canvas).on('mousemove', this.__mousemove.bind(this));
 				$(this.__$drawCanvas).on('mousemove', this.__mousemove.bind(this));
-				$(this.__$drawCanvas).on('mousemove', this.__mousemove.bind(this));
 				$(this.__$drawCanvas).on('mouseup', this.__mouseup.bind(this));
 				$(this.__$drawCanvas).on('mousedown', this.__mousedown.bind(this));
 				$(this.__$drawCanvas).on('mouseleave', this.__stopDrag.bind(this));
@@ -629,6 +626,14 @@
 
 	var touchHandler = function(e) {
 			dispatchEvent(e);
+		},
+		registerTouchEvents = function(target) {
+			if (!target) {
+				target = document;
+			}
+			target.addEventListener("touchstart", touchHandler, true);
+			target.addEventListener("touchmove", touchHandler, true);
+			target.addEventListener("touchend", touchHandler, true);
 		},
 		dispatchEvent = function(event, target) {
 			event.preventDefault();
