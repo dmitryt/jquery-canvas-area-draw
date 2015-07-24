@@ -33,6 +33,8 @@
 		_create: function(){
 
 			var self = this,
+				supportsOrientationChange = "onorientationchange" in window,
+				orientationEvent = supportsOrientationChange ? "orientationchange" : "resize",
 				cb;
 			this.__activeArea = 0;
 			this.__activeCoord = undefined;
@@ -59,6 +61,11 @@
 			});
 
 			if (this.options.mobile) {
+				this.__originalWidth = $(window).width();
+				window.addEventListener(orientationEvent, this.__recalculateAreas.bind(this), false);
+			}
+
+			if (this.options.mobile) {
 				registerTouchEvents(this.__$canvas[0]);
 			}
 
@@ -66,9 +73,21 @@
 				this._CSMode.init(this);
 				cb = this._CSMode.onCanvasSizeUpdate.bind(this._CSMode);
 			}
-
 			this.setImageUrl(this.options.imageUrl, cb);
 
+		},
+
+		__recalculateAreas: function() {
+			var newWidth = $(window).width(),
+				coef = this.__originalWidth ? newWidth / this.__originalWidth : 1,
+				areas = this.getAreas();
+			for (var i = 0; i < areas.length; i++) {
+				for (var j = 0; j < areas[i].coords.length; j++) {
+					areas[i].coords[j] = Math.round(areas[i].coords[j] * coef);
+				}
+			}
+			this.__originalWidth = newWidth;
+			this.__redraw();
 		},
 
 		_initCanvas: function() {
