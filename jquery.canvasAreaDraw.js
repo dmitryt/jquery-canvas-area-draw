@@ -44,9 +44,11 @@
 			this.__image = this.options.image ? $(this.options.image)[0] : new Image();
 
 			this.__$canvas = this._initCanvas();
+			this.__$deleteAreaIcon = this.__generateDeleteIcon();
 			this.__ctx = this.__$canvas[0].getContext('2d');
 
 			$(this.element).append(this.__$canvas);
+			$(this.element).append(this.__$deleteAreaIcon);
 			$(this.__$canvas).on('mousedown', function(e){
 				self._applyHandler('__mousedown', e);
 			});
@@ -59,6 +61,10 @@
 			$(this.__$canvas).on('mouseleave', function(e){
 				self.__stopdrag(e);
 			});
+			this.__$deleteAreaIcon.on("click", function(){
+				this.removeActiveArea();
+				this.__onAreaSelect();
+			}.bind(this));
 
 			if (this.options.mobile) {
 				this.__originalWidth = $(window).width();
@@ -75,6 +81,24 @@
 			}
 			this.setImageUrl(this.options.imageUrl, cb);
 
+		},
+
+		__generateDeleteIcon: function() {
+			return $("<div>").css({
+				display: "none",
+				position: "absolute",
+				width: 20,
+				height: 20,
+				borderRadius: "50%",
+				backgroundColor: "rgba(11,11,11,0.7)",
+				textAlign: "center",
+				fontFamily: "Verdana",
+				color: "white",
+				lineHeight: "16px",
+				cursor: "pointer",
+				marginTop: "-10px",
+				marginLeft: "-10px"
+			}).text("x");
 		},
 
 		__recalculateAreas: function() {
@@ -228,8 +252,30 @@
 		},
 
 		__onAreaSelect: function() {
+			var activeAreaIdx = this.__isArea(this.__activeArea) ? this.__activeArea : null,
+				activeArea = this.getArea(activeAreaIdx),
+				rightPoint = (function(area) {
+					if (!area) {
+						return null;
+					}
+					var x = area.coords[0],
+						y = area.coords[1];
+					for (var i = 2; i < area.coords.length; i+=2) {
+						if (area.coords[i] > x) {
+							x = area.coords[i];
+						}
+						if (area.coords[i + 1] < y) {
+							y = area.coords[i + 1];
+						}
+					}
+					return {x: x, y: y};
+				})(activeArea);
 			if (typeof this.options.onSelect === 'function') {
-				this.options.onSelect(this.__isArea(this.__activeArea) ? this.__activeArea : null);
+				this.options.onSelect(activeAreaIdx);
+			}
+			this.__$deleteAreaIcon.css({display: activeArea ? "block" : "none"});
+			if (activeArea && rightPoint) {
+				this.__$deleteAreaIcon.css({top: rightPoint.y, left: rightPoint.x});
 			}
 		},
 
@@ -514,7 +560,6 @@
 				if (typeof selectedAreaIndex === 'number') {
 					this.context.setActiveAreaIndex(selectedAreaIndex);
 				}
-				this.context.__onAreaSelect();
 			},
 
 			_prepareCoords: function(coords) {
@@ -552,12 +597,14 @@
 				this._showDrawArea(false);
 				this._clearCtx();
 				if (this.__mouseMoves.length === 1) {
-					return this.__click();
+					this.__click();
+					return this.context.__onAreaSelect();
 				}
 				if (this.__mouseMoves.length < 3) {
 					return false;
 				}
 				this.context.setActiveArea({coords: this._prepareCoords(this.__mouseMoves)});
+				this.context.__onAreaSelect();
 			},
 
 			__mousemove: function(e) {
@@ -603,8 +650,8 @@
 					position: 'absolute',
 					left: 0,
 					top: 0,
-					width: w + 'px',
-					height: h + 'px'
+					width: w,
+					height: h
 				});
 				this.__$drawCanvas.width = w;
 				this.__$drawCanvas.height = h;
