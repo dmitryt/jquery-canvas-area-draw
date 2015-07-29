@@ -9,6 +9,7 @@
 			mobile: false,
 			imageUrl: "",
 			mode: "",
+			metadata: [],
 			areas: [{
 				href:"",
 				coords:[]
@@ -19,7 +20,7 @@
 			onSwipe: function(p){}
 		},
 
-		__color: '#FF0000',
+		__metadataCache: {},
 		__inactiveColor: '#323232',
 
 		_applyHandler: function(method) {
@@ -36,6 +37,7 @@
 			var self = this,
 				cb;
 			this.__activeArea = 0;
+			this.__metadataCache = {};
 			this.__activeCoord = undefined;
 			this.__settings = undefined;
 			this.__$canvas = undefined;
@@ -76,7 +78,7 @@
 				cb = this._CSMode.onCanvasSizeUpdate.bind(this._CSMode);
 			}
 			this.setImageUrl(this.options.imageUrl, cb);
-
+			this.setMetadata("color", "#FF0000");
 		},
 
 		__generateDeleteIcon: function() {
@@ -245,7 +247,8 @@
 		},
 
 		__isArea: function(index) {
-			return this.options.areas[index].coords.length > 2;
+			area = this.options.areas[index]
+			return area && area.coords.length > 4;
 		},
 
 		__onAreaSelect: function() {
@@ -297,7 +300,7 @@
 				},
 				areaObj = this.options.areas[area],
 				isActiveArea = area == this.__activeArea,
-				color = (areaObj ? areaObj.color : null) || this.getColor(),
+				color = (areaObj ? areaObj.color : null) || this.getMetadata('color'),
 				colorStr = getRgbStrExpr(color),
 				inactiveColorStr = getRgbStrExpr(this.__inactiveColor),
 				inactiveColorTranspStr = getRgbStrExpr(this.__inactiveColor, 0.3);
@@ -319,7 +322,10 @@
 			}
 
 			this.__ctx.lineWidth = 1;
-			this.options.areas[area].color = color;
+			(this.options.metadata || []).forEach(function(key){
+				var v = areaObj ? areaObj[key] : null;
+				this.options.areas[area][key] = v || this.getMetadata(key);
+			}, this);
 
 			//Draw polygon
 			this.__ctx.beginPath();
@@ -364,14 +370,6 @@
 
 		getMode: function() {
 			return this.options.mode;
-		},
-
-		getColor: function() {
-			return this.__color;
-		},
-
-		setColor: function(color) {
-			this.__color = color;
 		},
 
 		isCSMode: function() {
@@ -489,6 +487,14 @@
 
 		getImageUrl: function(){
 			return this.options.imageUrl;
+		},
+
+		getMetadata: function(key) {
+			return this.__metadataCache[key];
+		},
+
+		setMetadata: function(key, value) {
+			this.__metadataCache[key] = value
 		},
 
 		_CSMode: {
