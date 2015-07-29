@@ -15,7 +15,8 @@
 			}],
 			onMove: function(p){},
 			onUpdateArea: function(p){},
-			onSelect: function(p){}
+			onSelect: function(p){},
+			onSwipe: function(p){}
 		},
 
 		__color: '#FF0000',
@@ -33,8 +34,6 @@
 		_create: function(){
 
 			var self = this,
-				supportsOrientationChange = "onorientationchange" in window,
-				orientationEvent = supportsOrientationChange ? "orientationchange" : "resize",
 				cb;
 			this.__activeArea = 0;
 			this.__activeCoord = undefined;
@@ -61,18 +60,15 @@
 			$(this.__$canvas).on('mouseleave', function(e){
 				self.__stopdrag(e);
 			});
-			this.__$deleteAreaIcon.on("click", function(){
+			this.__$deleteAreaIcon.on("click", function(e){
+				e.preventDefault();
+				e.stopPropagation();
 				this.removeActiveArea();
 				this.__onAreaSelect();
 			}.bind(this));
 
-			if (this.options.mobile) {
-				this.__originalWidth = $(window).width();
-				window.addEventListener(orientationEvent, this.__recalculateAreas.bind(this), false);
-			}
-
-			if (this.options.mobile) {
-				registerTouchEvents(this.__$canvas[0]);
+			if (this.options.mobile && "onorientationchange" in window) {
+				$(window).on("onorientationchange", this.__orientationchange.bind(this));
 			}
 
 			if (this.isCSMode()) {
@@ -101,8 +97,8 @@
 			}).text("x");
 		},
 
-		__recalculateAreas: function() {
-			var newWidth = $(window).width(),
+		__orientationchange: function() {
+			var newWidth = this.__image.width,
 				coef = this.__originalWidth ? newWidth / this.__originalWidth : 1,
 				areas = this.getAreas();
 			for (var i = 0; i < areas.length; i++) {
@@ -112,6 +108,7 @@
 			}
 			this.__originalWidth = newWidth;
 			this.__redraw();
+			this.__onAreaSelect();
 		},
 
 		_initCanvas: function() {
@@ -280,7 +277,6 @@
 		},
 
 		__drawArea: function(area){
-
 			var strokePolygonRgb = '';
 			var fillPolygonRgba = '';
 			var strokeCoordRgb = '';
@@ -509,11 +505,23 @@
 				$(this.__$drawCanvas).on('mousedown', this.__mousedown.bind(this));
 				$(this.__$drawCanvas).on('mouseleave', this.__stopDrag.bind(this));
 				this.__drawCanvasCtx = this.__$drawCanvas[0].getContext('2d');
+
+				if (this.context.options.mobile) {
+					registerTouchEvents(this.context.__$canvas[0], {onSwipe: this.__swipe.bind(this)});
+					registerTouchEvents(this.__$drawCanvas[0], {onSwipe: this.__swipe.bind(this)});
+				}
 			},
 
 			_addClick: function(e, isDragging) {
 				var offset = $(e.target).offset();
 				this.__mouseMoves.push({x: e.pageX - offset.left, y: e.pageY - offset.top, isDragging: isDragging});
+			},
+
+			__swipe: function(e) {
+				var fn = this.context.options.onSwipe;
+				if (typeof fn === 'function') {
+					fn.call(this);
+				}
 			},
 
 			__mousedown: function(e) {
@@ -655,6 +663,7 @@
 				});
 				this.__$drawCanvas.width = w;
 				this.__$drawCanvas.height = h;
+				this.__originalWidth = w;
 			},
 
 			__stopDrag: function() {
@@ -690,33 +699,41 @@
 	    }
 	};
 
-	var touchHandler = function(e) {
-			dispatchEvent(e);
-		},
-		registerTouchEvents = function(target) {
+	var registerTouchEvents = function(target, args) {
 			if (!target) {
 				target = document;
 			}
-			target.addEventListener("touchstart", touchHandler, true);
-			target.addEventListener("touchmove", touchHandler, true);
-			target.addEventListener("touchend", touchHandler, true);
+			["touchstart", "touchmove", "touchend"].forEach(function(eventType){
+					target.addEventListener(eventType, function(e){
+						dispatchEvent(e, args);
+					}, true);
+			});
 		},
-		dispatchEvent = function(event, target) {
+		dispatchEvent = function(event, args) {
+			args = args || {};
+	    var touch = event.changedTouches[0] || event,
+				isSwipeEvent = (event.touches && event.touches.length >= 2) || (event.changedTouches && event.changedTouches.length >= 2);
+			if (isSwipeEvent) {
+				event.stopPropagation();
+				if (typeof args.onSwipe === 'function') {
+					args.onSwipe.call(this, event);
+				}
+				return true;
+			}
+
 			event.preventDefault();
-		    var touch = event.changedTouches[0] || event;
 
-		    var simulatedEvent = document.createEvent("MouseEvent");
-		    simulatedEvent.initMouseEvent({
-		        touchstart: "mousedown",
-		        touchmove: "mousemove",
-		        touchend: "mouseup"
-		    }[event.type], true, true, window, 1,
-		        touch.screenX, touch.screenY,
-		        touch.clientX, touch.clientY, false,
-		        false, false, false, 0, null);
-			simulatedEvent.originalType = event.type;
+	    var simulatedEvent = document.createEvent("MouseEvent");
+	    simulatedEvent.initMouseEvent({
+	        touchstart: "mousedown",
+	        touchmove: "mousemove",
+	        touchend: "mouseup"
+	    }[event.type], true, true, window, 1,
+	        touch.screenX, touch.screenY,
+	        touch.clientX, touch.clientY, false,
+	        false, false, false, 0, null);
 
-		    (target || touch.target).dispatchEvent(simulatedEvent);
+	    (args.target || touch.target).dispatchEvent(simulatedEvent);
 		};
 
 })( jQuery );
